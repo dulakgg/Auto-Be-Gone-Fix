@@ -1,18 +1,15 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/LevelBrowserLayer.hpp>
 #include <Geode/modify/GameLevelManager.hpp>
-// #include <unordered_set>
-// #include <algorithm>
 
 using namespace geode::prelude;
-// Removed unused GameLevelManager hook
 
 class $modify(MyLevelBrowserLayer, LevelBrowserLayer) {
     struct Fields {
         cocos2d::CCArray* aggregated = nullptr; 
         bool alreadyFiltered = false; 
         int targetCount = 10;
-    int maxFetches = 6; // cap auto-fetches to reduce load time
+    int maxFetches = Mod::get()->getSettingValue<bool>("max-fetches");
     std::string lastSig;
     int nextToFetch = -1;
     std::unordered_set<int> seenIDs; 
@@ -33,7 +30,7 @@ class $modify(MyLevelBrowserLayer, LevelBrowserLayer) {
             m_fields->aggregated = nullptr;
         }
         m_fields->alreadyFiltered = false;
-    m_fields->maxFetches = 6;
+    m_fields->maxFetches = Mod::get()->getSettingValue<bool>("max-fetches");
     m_fields->nextToFetch = -1;
     m_fields->seenIDs.clear();
     m_fields->pendingPage = -1;

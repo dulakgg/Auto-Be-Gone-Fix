@@ -8,11 +8,24 @@
 	},
 	"id": "dulak.auto_be_gone_fix",
 	"name": "Auto Be Gone Fix",
-	"version": "v1.0.0",
+	"version": "v1.0.1",
 	"developer": "Dulak",
 	"description": "Filters out auto levels from easy searches",
 	"links": {
         "source": "https://github.com/dulakgg/Auto-Be-Gone-Fix"
     },
-	"tags": ["bugfix", "interface", "content"]
+	"tags": ["bugfix", "interface", "content"],
+	"settings": {
+		"max-fetches": {
+			"type": "int",
+			"name": "Pages Fetched",
+			"description": "Limit how many extra pages we auto-request to fill non-Auto levels.",
+			"default": 4,
+			"min": 2,
+            "max": 10,
+            "control": {
+                "slider": true
+            }
+		}
+	}
 }
