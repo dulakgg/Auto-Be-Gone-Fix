@@ -9,14 +9,10 @@ class $modify(MyLevelBrowserLayer, LevelBrowserLayer) {
         cocos2d::CCArray* aggregated = nullptr; 
         bool alreadyFiltered = false; 
         int targetCount = 10;
-    int maxFetches = Mod::get()->getSettingValue<bool>("max-fetches");
+    int maxFetches = 6; 
     std::string lastSig;
     int nextToFetch = -1;
     std::unordered_set<int> seenIDs; 
-    int pendingPage = -1;
-    std::string pendingTag;
-    int pendingType = 0;
-    bool havePending = false;
     };
 
     bool asIsEasySelected(GJSearchObject* so) {
@@ -24,19 +20,25 @@ class $modify(MyLevelBrowserLayer, LevelBrowserLayer) {
         std::string diffTokens = "," + std::string(so->m_difficulty.c_str()) + ",";
         return diffTokens.find(",1,") != std::string::npos;
     }
+
+    GJSearchObject* asCloneWithPage(GJSearchObject* so, int page) {
+        if (!so) return nullptr;
+        auto key = so->getKey();
+        if (!key) return nullptr;
+        auto copy = GJSearchObject::createFromKey(key);
+        if (!copy) return nullptr;
+        copy->m_page = page;
+        return copy;
+    }
     void asResetAggregation() {
         if (m_fields->aggregated) {
             m_fields->aggregated->release();
             m_fields->aggregated = nullptr;
         }
         m_fields->alreadyFiltered = false;
-    m_fields->maxFetches = Mod::get()->getSettingValue<bool>("max-fetches");
+    m_fields->maxFetches = 6;
     m_fields->nextToFetch = -1;
     m_fields->seenIDs.clear();
-    m_fields->pendingPage = -1;
-    m_fields->pendingTag.clear();
-    m_fields->pendingType = 0;
-    m_fields->havePending = false;
     }
     void asAppendNonAuto(cocos2d::CCArray* src) {
         if (!src) return;
@@ -136,16 +138,12 @@ class $modify(MyLevelBrowserLayer, LevelBrowserLayer) {
             return s;
         };
 
-        auto sig = makeSig(searchObject);
-        if (sig != m_fields->lastSig) {
+    auto sig = makeSig(searchObject);
+    if (!m_fields->lastSig.size() || sig != m_fields->lastSig || (searchObject && searchObject->m_page == 0)) {
             asResetAggregation();
             m_fields->lastSig = sig;
         }
-        m_fields->alreadyFiltered = false;
-    m_fields->pendingPage = -1;
-    m_fields->pendingTag.clear();
-    m_fields->pendingType = 0;
-    m_fields->havePending = false;
+    m_fields->alreadyFiltered = false;
         if (searchObject) {
             int desiredNext = searchObject->m_page + 1;
             if (m_fields->nextToFetch < 0) m_fields->nextToFetch = desiredNext;
@@ -166,27 +164,19 @@ class $modify(MyLevelBrowserLayer, LevelBrowserLayer) {
         }
         asAppendNonAuto(arr);
         int page = this->m_searchObject ? this->m_searchObject->m_page : 0;
-        if (!m_fields->havePending || m_fields->pendingPage != page) {
-            m_fields->pendingPage = page;
-            m_fields->pendingTag = tag ? tag : "";
-            m_fields->pendingType = type;
-            m_fields->havePending = true;
-        }
         int needUpTo = (page + 1) * m_fields->targetCount;
         int have = m_fields->aggregated->count();
-    if ((arr && arr->count() > 0) && have < needUpTo && m_fields->maxFetches > 0) {
+
+        asFinalizePageSlice(tag, type);
+
+        if (have < needUpTo && m_fields->maxFetches > 0) {
             int nextPage = (m_fields->nextToFetch >= 0) ? m_fields->nextToFetch : (page + 1);
-            auto next = this->m_searchObject->getPageObject(nextPage);
+            auto next = asCloneWithPage(this->m_searchObject, nextPage);
             if (next) {
                 m_fields->maxFetches--;
                 m_fields->nextToFetch = nextPage + 1;
                 GameLevelManager::sharedState()->getOnlineLevels(next);
-                return; 
             }
         }
-    const char* ftag = m_fields->havePending ? m_fields->pendingTag.c_str() : tag;
-    int ftype = m_fields->havePending ? m_fields->pendingType : type;
-    asFinalizePageSlice(ftag, ftype);
-    m_fields->havePending = false;
     }
 };
